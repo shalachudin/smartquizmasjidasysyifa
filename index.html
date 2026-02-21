@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 
     <script type="importmap">
     {
@@ -19,146 +20,62 @@
       }
     }
     </script>
-
-    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-slate-50">
     <div id="root"></div>
 
-    <script type="module">
-        // Import Firebase dari CDN yang sudah didefinisikan di importmap
+    <script type="module" data-type="overview">
+        // --- JANGAN DIHAPUS: UNTUK BABEL ---
+    </script>
+
+    <script type="text/babel" data-presets="react">
+        // Import Firebase
         import { initializeApp } from "firebase/app";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
         import { getFirestore, doc, onSnapshot, setDoc, updateDoc, collection, getDocs, runTransaction } from "firebase/firestore";
 
-        // Ambil config dari Environment Variable Vercel (atau gunakan objek kosong jika belum ada)
-        // PERHATIAN: Pastikan di Vercel sudah input __firebase_config
-        const firebaseConfig = window.__firebase_config ? JSON.parse(window.__firebase_config) : {
-            apiKey: "API_KEY_KAMU",
-            authDomain: "PROJECT_KAMU.firebaseapp.com",
-            projectId: "PROJECT_KAMU",
-            storageBucket: "PROJECT_KAMU.appspot.com",
-            messagingSenderId: "ID_KAMU",
-            appId: "APP_ID_KAMU"
+        // MASUKKAN DATA ASLI DARI FIREBASE CONSOLE DI SINI
+        const firebaseConfig = {
+            apiKey: "PASTE_API_KEY_ASLI_DI_SINI",
+            authDomain: "smart-quiz-asy-syifa.firebaseapp.com",
+            projectId: "smart-quiz-asy-syifa",
+            storageBucket: "smart-quiz-asy-syifa.appspot.com",
+            messagingSenderId: "PASTE_SENDER_ID_ASLI_DI_SINI",
+            appId: "PASTE_APP_ID_ASLI_DI_SINI"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = "smart-quiz-asy-syifa"; // ID Project unik kamu
+        const appId = "smart-quiz-pai-001";
 
-        // Komponen Icon Sederhana (Pengganti Lucide-React)
-        const Icon = ({ name, size = 24, className = "" }) => {
-            const [svg, setSvg] = React.useState("");
-            React.useEffect(() => {
-                const icon = lucide.icons[name];
-                if (icon) {
-                    const svgString = icon[2].map(tag => `<${tag[0]} ${Object.entries(tag[1]).map(([k,v]) => `${k}="${v}"`).join(' ')} />`).join('');
-                    setSvg(svgString);
-                }
-            }, [name]);
-            return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: svg }} />;
-        };
-
-        // Bank Soal
+        // Bank Soal PAI (Contoh)
         const QUESTION_BANK = [
-            { id: 1, category: "Aqidah", vignette: "Ahmad melihat pelangi yang sangat indah. Ia sadar itu ciptaan Allah.", question: "Sifat Allah yang ditunjukkan adalah...", options: ["Al-Khaliq", "Al-Bashir", "As-Sami", "Al-Ahad"], correct: 0, timeLimit: 45 },
-            { id: 2, category: "Akhlak", vignette: "Budi menemukan uang Rp 10.000 di kantin dan menyerahkannya ke guru.", question: "Sifat mulia Budi disebut...", options: ["Sabar", "Amanah/Jujur", "Tawadhu", "Qana'ah"], correct: 1, timeLimit: 45 },
-            { id: 3, category: "Tajwid", vignette: "Membaca Nun mati atau Tanwin dengan jelas tanpa dengung.", question: "Hukum bacaan tersebut adalah...", options: ["Idgham", "Ikhfa", "Izhhar Halqi", "Iqlab"], correct: 2, timeLimit: 30 }
+            { id: 1, category: "Aqidah", vignette: "Ahmad melihat pelangi...", question: "Sifat Allah adalah...", options: ["Al-Khaliq", "Al-Bashir", "As-Sami", "Al-Ahad"], correct: 0, timeLimit: 45 }
         ];
 
         function App() {
-            const [user, setUser] = React.useState(null);
-            const [role, setRole] = React.useState(null); 
-            const [gameState, setGameState] = React.useState(null);
-            const [participants, setParticipants] = React.useState([]);
+            const [role, setRole] = React.useState(null);
             const [playerName, setPlayerName] = React.useState('');
-            const [isJoined, setIsJoined] = React.useState(false);
-            const [warningCount, setWarningCount] = React.useState(0);
-            const [isLocked, setIsLocked] = React.useState(false);
-
-            // Auth secara otomatis
-            React.useEffect(() => {
-                signInAnonymously(auth).catch(console.error);
-                return onAuthStateChanged(auth, (u) => setUser(u));
-            }, []);
-
-            // Sinkronisasi Game State dari Firebase
-            React.useEffect(() => {
-                if (!user) return;
-                const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'gameSession', 'gameConfig');
-                return onSnapshot(gameRef, (snap) => {
-                    if (snap.exists()) setGameState(snap.data());
-                    else if (role === 'server') {
-                        setDoc(gameRef, { status: 'lobby', currentQuestionIndex: 0, timeRemaining: 60 });
-                    }
-                });
-            }, [user, role]);
-
-            // Handler Join Game
-            const joinGame = async () => {
-                if (!playerName.trim() || !user) return;
-                const pRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', user.uid);
-                await setDoc(pRef, { name: playerName, score: 0, hasAnswered: false });
-                setIsJoined(true);
-            };
-
-            // Tampilan Awal: Pilih Role
+            
+            // Logika kuis sederhana untuk mengetes
             if (!role) {
                 return (
-                    <div className="min-h-screen bg-emerald-50 flex items-center justify-center p-4">
-                        <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full text-center">
-                            <h1 className="text-3xl font-bold text-emerald-800 mb-6">Smart Quiz Asy-Syifa</h1>
-                            <div className="grid gap-4">
-                                <button onClick={() => setRole('server')} className="p-6 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700">Mode Server (Layar Utama)</button>
-                                <button onClick={() => setRole('participant')} className="p-6 bg-amber-500 text-white rounded-2xl font-bold hover:bg-amber-600">Mode Peserta (HP)</button>
-                            </div>
+                    <div className="min-h-screen flex flex-col items-center justify-center bg-emerald-50">
+                        <h1 className="text-3xl font-bold mb-8 text-emerald-800">Smart Quiz PAI</h1>
+                        <div className="space-y-4 w-full max-w-xs">
+                            <button onClick={() => setRole('server')} className="w-full p-4 bg-emerald-600 text-white rounded-xl font-bold">MODE SERVER</button>
+                            <button onClick={() => setRole('participant')} className="w-full p-4 bg-amber-500 text-white rounded-xl font-bold">MODE PESERTA</button>
                         </div>
                     </div>
                 );
             }
 
-            // Tampilan Server (Leaderboard & Soal)
-            if (role === 'server') {
-                return (
-                    <div className="p-10 text-center">
-                        <h2 className="text-4xl font-black text-emerald-700 mb-10">Layar Utama Lomba</h2>
-                        {gameState?.status === 'lobby' ? (
-                            <div>
-                                <p className="text-xl mb-5">Menunggu Peserta...</p>
-                                <button onClick={() => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'gameSession', 'gameConfig'), { status: 'playing' })} className="bg-emerald-500 text-white px-10 py-4 rounded-full font-bold">MULAI</button>
-                            </div>
-                        ) : (
-                            <div className="text-2xl font-bold">Lomba sedang berlangsung!</div>
-                        )}
-                    </div>
-                );
-            }
-
-            // Tampilan Peserta
-            return (
-                <div className="p-6 max-w-md mx-auto">
-                    {!isJoined ? (
-                        <div className="text-center">
-                            <h2 className="text-2xl font-bold mb-4">Masukkan Nama</h2>
-                            <input value={playerName} onChange={e => setPlayerName(e.target.value)} className="w-full p-4 border rounded-xl mb-4" placeholder="Nama Lengkap" />
-                            <button onClick={joinGame} className="w-full p-4 bg-amber-500 text-white rounded-xl font-bold">MASUK</button>
-                        </div>
-                    ) : (
-                        <div className="text-center">
-                            <Icon name="CheckCircle2" className="mx-auto text-emerald-500 mb-4" size={64} />
-                            <h2 className="text-xl font-bold">Berhasil Masuk!</h2>
-                            <p>Tunggu instruksi dari layar depan.</p>
-                        </div>
-                    )}
-                </div>
-            );
+            return <div className="p-10 text-center">Berhasil Masuk sebagai {role}!</div>;
         }
 
-        // Render Aplikasi
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
 </body>
 </html>
-
